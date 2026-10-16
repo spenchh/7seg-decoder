@@ -8,10 +8,13 @@ entity decode is
         G_REFRESH_TICK : positive := 100_000 -- 250 Hz full-display refresh at a 100 MHz clock,
     );
     port(
-        i_clk     :   in  std_logic;
-        i_sw      :   in  std_logic_vector(3  downto 0);
-        o_anode_n :   out std_logic_vector(3  downto 0);
-        o_seg_n   :   out std_logic_vector(6  downto 0)
+        i_clk         :   in  std_logic;
+        i_digit0      :   in  std_logic_vector(3  downto 0); -- Right most digit
+        i_digit1      :   in  std_logic_vector(3  downto 0);
+        i_digit2      :   in  std_logic_vector(3  downto 0);
+        i_digit3      :   in  std_logic_vector(3  downto 0); -- Left most digit
+        o_anode_n     :   out std_logic_vector(3  downto 0);
+        o_seg_n       :   out std_logic_vector(6  downto 0)
     );
 end decode;
 
@@ -27,54 +30,35 @@ architecture rtl of decode is
 
     end function;
     
-    signal counter : unsigned(counter_width(G_REFRESH_TICK)-1 downto 0) := (others => '0');
-    signal mode : unsigned(1 downto 0) := (others => '0');
+    signal counter        : unsigned(counter_width(G_REFRESH_TICK)-1 downto 0) := (others => '0');
+    signal mode           : unsigned(1 downto 0) := (others => '0');
+    signal selected_digit : std_logic_vector(3 downto 0);
 
 begin
     -- Anode & Cathodes are Active Low
-    process (mode, i_sw)
+    process (mode, i_digit0, i_digit1, i_digit2, i_digit3)
     begin
 
         case mode is -- mode switches between the LED
             when "00" => 
-                if (i_sw(0) = '1') then
-                    o_anode_n <= (0 =>'0', others => '1');
-                    o_seg_n   <= (1 => '0', 2 => '0', others => '1');
-                else 
-                    o_anode_n <= (0 =>'0', others => '1');
-                    o_seg_n <= (6 => '1', others => '0');
-                end if;
+                o_anode_n      <= "1110"; -- Enables anode[0]
+                selected_digit <= i_digit0; -- sel digit takes value of i_digit
 
             when "01" => 
-                if (i_sw(1) = '1') then
-                    o_anode_n <= (1 =>'0', others => '1');
-                    o_seg_n   <= (1 => '0', 2 => '0', others => '1');
-                else 
-                    o_anode_n <= (1 =>'0', others => '1');
-                    o_seg_n <= (6 => '1', others => '0');
-                end if;
+                o_anode_n      <= "1101"; -- Enables anode[1]
+                selected_digit <= i_digit1;
                 
             when "10" => 
-                if (i_sw(2) = '1') then
-                    o_anode_n <= (2 =>'0', others => '1');
-                    o_seg_n   <= (1 => '0', 2 => '0', others => '1');
-                else 
-                    o_anode_n <= (2 =>'0', others => '1');
-                    o_seg_n <= (6 => '1', others => '0');
-                end if;
+                o_anode_n      <= "1011"; -- Enables anode[2]
+                selected_digit <= i_digit2;
 
             when "11" =>
-                if (i_sw(3) = '1') then
-                    o_anode_n <= (3 =>'0', others => '1');
-                    o_seg_n   <= (1 => '0', 2 => '0', others => '1');
-                else
-                    o_anode_n <= (3 =>'0', others => '1');
-                    o_seg_n <= (6 => '1', others => '0');
-                end if;
+                o_anode_n      <= "0111"; -- Enables anode[3]
+                selected_digit <= i_digit3;
 
             when others => 
-                o_anode_n <= (others => '1');
-                o_seg_n <= (6 => '1', others => '0');
+                o_anode_n      <= (others => '1');
+                selected_digit <= (others => '0');
 
         end case;
 
